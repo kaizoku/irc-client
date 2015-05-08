@@ -43,8 +43,8 @@ delChan tvarI chan = do
 -- | Send a message to the source of an event.
 reply :: UnicodeEvent -> Text -> IRC ()
 reply ev txt = case _source ev of
-  Channel c _ -> mapM_ (send . Privmsg c . Right) $ T.lines txt
-  User n      -> mapM_ (send . Privmsg n . Right) $ T.lines txt
+  Channel c _ -> mapM_ (send . Notice c . Right) $ T.lines txt
+  User n      -> mapM_ (send . Notice n . Right) $ T.lines txt
   _           -> return ()
 
 -- | Construct a @PRIVMSG@ containing a CTCP
