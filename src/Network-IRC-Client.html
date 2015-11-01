@@ -15,7 +15,7 @@
 <a name="line-6"></a><span class='hs-comment'>-- &gt; run host port nick = do</span>
 <a name="line-7"></a><span class='hs-comment'>-- &gt;   conn &lt;- connect host port 1</span>
 <a name="line-8"></a><span class='hs-comment'>-- &gt;   let cfg = defaultIRCConf nick</span>
-<a name="line-9"></a><span class='hs-comment'>-- &gt;   let cfg' = cfg { _handlers = yourCustomEventHandlers : _handlers cfg }</span>
+<a name="line-9"></a><span class='hs-comment'>-- &gt;   let cfg' = cfg { _eventHandlers = yourCustomEventHandlers : _eventHandlers cfg }</span>
 <a name="line-10"></a><span class='hs-comment'>-- &gt;   start conn cfg'</span>
 <a name="line-11"></a><span class='hs-comment'>--</span>
 <a name="line-12"></a><span class='hs-comment'>-- You shouldn't really need to tweak anything other than the event</span>
@@ -27,71 +27,125 @@
 <a name="line-18"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>connectWithTLS</span>
 <a name="line-19"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>start</span>
 <a name="line-20"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>start'</span>
-<a name="line-21"></a>
-<a name="line-22"></a>  <span class='hs-comment'>-- * Interaction</span>
-<a name="line-23"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>send</span>
-<a name="line-24"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>sendBS</span>
-<a name="line-25"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>disconnect</span>
-<a name="line-26"></a>
-<a name="line-27"></a>  <span class='hs-comment'>-- * Defaults</span>
-<a name="line-28"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>defaultIRCConf</span>
-<a name="line-29"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>defaultDisconnectHandler</span>
-<a name="line-30"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>defaultEventHandlers</span>
-<a name="line-31"></a>
-<a name="line-32"></a>  <span class='hs-comment'>-- * Types</span>
-<a name="line-33"></a>  <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Types</span>
-<a name="line-34"></a>
-<a name="line-35"></a>  <span class='hs-comment'>-- * Utilities</span>
-<a name="line-36"></a>  <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Utils</span>
-<a name="line-37"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>rawMessage</span>
-<a name="line-38"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>toByteString</span>
-<a name="line-39"></a>  <span class='hs-layout'>)</span> <span class='hs-keyword'>where</span>
+<a name="line-21"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>startStateful</span>
+<a name="line-22"></a>
+<a name="line-23"></a>  <span class='hs-comment'>-- * Logging</span>
+<a name="line-24"></a>  <span class='hs-layout'>,</span> <span class='hs-conid'>Origin</span> <span class='hs-layout'>(</span><span class='hs-keyglyph'>..</span><span class='hs-layout'>)</span>
+<a name="line-25"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>connect'</span>
+<a name="line-26"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>connectWithTLS'</span>
+<a name="line-27"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>stdoutLogger</span>
+<a name="line-28"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>fileLogger</span>
+<a name="line-29"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>noopLogger</span>
+<a name="line-30"></a>
+<a name="line-31"></a>  <span class='hs-comment'>-- * Interaction</span>
+<a name="line-32"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>send</span>
+<a name="line-33"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>sendBS</span>
+<a name="line-34"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>disconnect</span>
+<a name="line-35"></a>
+<a name="line-36"></a>  <span class='hs-comment'>-- * Defaults</span>
+<a name="line-37"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>defaultIRCConf</span>
+<a name="line-38"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>defaultDisconnectHandler</span>
+<a name="line-39"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>defaultEventHandlers</span>
 <a name="line-40"></a>
-<a name="line-41"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Monad</span><span class='hs-varop'>.</span><span class='hs-conid'>IO</span><span class='hs-varop'>.</span><span class='hs-conid'>Class</span>     <span class='hs-layout'>(</span><span class='hs-conid'>MonadIO</span><span class='hs-layout'>,</span> <span class='hs-varid'>liftIO</span><span class='hs-layout'>)</span>
-<a name="line-42"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Monad</span><span class='hs-varop'>.</span><span class='hs-conid'>Trans</span><span class='hs-varop'>.</span><span class='hs-conid'>Reader</span> <span class='hs-layout'>(</span><span class='hs-varid'>runReaderT</span><span class='hs-layout'>)</span>
-<a name="line-43"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>ByteString</span>            <span class='hs-layout'>(</span><span class='hs-conid'>ByteString</span><span class='hs-layout'>)</span>
-<a name="line-44"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>Text</span>                  <span class='hs-layout'>(</span><span class='hs-conid'>Text</span><span class='hs-layout'>)</span>
-<a name="line-45"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>Time</span><span class='hs-varop'>.</span><span class='hs-conid'>Clock</span>            <span class='hs-layout'>(</span><span class='hs-conid'>NominalDiffTime</span><span class='hs-layout'>)</span>
-<a name="line-46"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Handlers</span>
-<a name="line-47"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Internal</span>
-<a name="line-48"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Types</span>
-<a name="line-49"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Utils</span>
-<a name="line-50"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Conduit</span>        <span class='hs-layout'>(</span><span class='hs-varid'>ircClient</span><span class='hs-layout'>,</span> <span class='hs-varid'>ircTLSClient</span><span class='hs-layout'>,</span> <span class='hs-varid'>rawMessage</span><span class='hs-layout'>,</span> <span class='hs-varid'>toByteString</span><span class='hs-layout'>)</span>
-<a name="line-51"></a>
-<a name="line-52"></a><span class='hs-comment'>-- * Connecting to an IRC network</span>
-<a name="line-53"></a>
-<a name="line-54"></a><a name="connect"></a><span class='hs-comment'>-- | Connect to a server without TLS.</span>
-<a name="line-55"></a><span class='hs-definition'>connect</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadIO</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>ByteString</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>Int</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>NominalDiffTime</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-conid'>ConnectionConfig</span>
-<a name="line-56"></a><span class='hs-definition'>connect</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>connect'</span> <span class='hs-varid'>ircClient</span> <span class='hs-varid'>defaultDisconnectHandler</span>
-<a name="line-57"></a>
-<a name="line-58"></a><a name="connectWithTLS"></a><span class='hs-comment'>-- | Connect to a server with TLS.</span>
-<a name="line-59"></a><span class='hs-definition'>connectWithTLS</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadIO</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>ByteString</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>Int</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>NominalDiffTime</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-conid'>ConnectionConfig</span>
-<a name="line-60"></a><span class='hs-definition'>connectWithTLS</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>connect'</span> <span class='hs-varid'>ircTLSClient</span> <span class='hs-varid'>defaultDisconnectHandler</span>
-<a name="line-61"></a>
-<a name="line-62"></a><span class='hs-comment'>-- * Starting</span>
-<a name="line-63"></a>
-<a name="line-64"></a><a name="start"></a><span class='hs-comment'>-- | Run the event loop for a server, receiving messages and handing</span>
-<a name="line-65"></a><span class='hs-comment'>-- them off to handlers as appropriate. Messages will be logged to</span>
-<a name="line-66"></a><span class='hs-comment'>-- stdout.</span>
-<a name="line-67"></a><span class='hs-definition'>start</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadIO</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>ConnectionConfig</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>InstanceConfig</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-conid'>()</span>
-<a name="line-68"></a><span class='hs-definition'>start</span> <span class='hs-varid'>cconf</span> <span class='hs-varid'>iconf</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>newIRCState</span> <span class='hs-varid'>cconf</span> <span class='hs-varid'>iconf</span> <span class='hs-varop'>&gt;&gt;=</span> <span class='hs-varid'>start'</span>
-<a name="line-69"></a>
-<a name="line-70"></a><a name="start'"></a><span class='hs-comment'>-- | Like 'start', but use the provided initial state.</span>
-<a name="line-71"></a><span class='hs-definition'>start'</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadIO</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>IRCState</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-conid'>()</span>
-<a name="line-72"></a><span class='hs-definition'>start'</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>liftIO</span> <span class='hs-varop'>.</span> <span class='hs-varid'>runReaderT</span> <span class='hs-varid'>runner</span>
+<a name="line-41"></a>  <span class='hs-comment'>-- * Types</span>
+<a name="line-42"></a>  <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Types</span>
+<a name="line-43"></a>
+<a name="line-44"></a>  <span class='hs-comment'>-- * Utilities</span>
+<a name="line-45"></a>  <span class='hs-layout'>,</span> <span class='hs-keyword'>module</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Utils</span>
+<a name="line-46"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>rawMessage</span>
+<a name="line-47"></a>  <span class='hs-layout'>,</span> <span class='hs-varid'>toByteString</span>
+<a name="line-48"></a>  <span class='hs-layout'>)</span> <span class='hs-keyword'>where</span>
+<a name="line-49"></a>
+<a name="line-50"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Monad</span><span class='hs-varop'>.</span><span class='hs-conid'>IO</span><span class='hs-varop'>.</span><span class='hs-conid'>Class</span>     <span class='hs-layout'>(</span><span class='hs-conid'>MonadIO</span><span class='hs-layout'>,</span> <span class='hs-varid'>liftIO</span><span class='hs-layout'>)</span>
+<a name="line-51"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Control</span><span class='hs-varop'>.</span><span class='hs-conid'>Monad</span><span class='hs-varop'>.</span><span class='hs-conid'>Trans</span><span class='hs-varop'>.</span><span class='hs-conid'>Reader</span> <span class='hs-layout'>(</span><span class='hs-varid'>runReaderT</span><span class='hs-layout'>)</span>
+<a name="line-52"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>ByteString</span>            <span class='hs-layout'>(</span><span class='hs-conid'>ByteString</span><span class='hs-layout'>)</span>
+<a name="line-53"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>Text</span>                  <span class='hs-layout'>(</span><span class='hs-conid'>Text</span><span class='hs-layout'>)</span>
+<a name="line-54"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Data</span><span class='hs-varop'>.</span><span class='hs-conid'>Time</span><span class='hs-varop'>.</span><span class='hs-conid'>Clock</span>            <span class='hs-layout'>(</span><span class='hs-conid'>NominalDiffTime</span><span class='hs-layout'>)</span>
+<a name="line-55"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Handlers</span>
+<a name="line-56"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Internal</span>
+<a name="line-57"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Types</span>
+<a name="line-58"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Client</span><span class='hs-varop'>.</span><span class='hs-conid'>Utils</span>
+<a name="line-59"></a><span class='hs-keyword'>import</span> <span class='hs-conid'>Network</span><span class='hs-varop'>.</span><span class='hs-conid'>IRC</span><span class='hs-varop'>.</span><span class='hs-conid'>Conduit</span>        <span class='hs-layout'>(</span><span class='hs-varid'>ircClient</span><span class='hs-layout'>,</span> <span class='hs-varid'>ircTLSClient</span><span class='hs-layout'>,</span> <span class='hs-varid'>rawMessage</span><span class='hs-layout'>,</span> <span class='hs-varid'>toByteString</span><span class='hs-layout'>)</span>
+<a name="line-60"></a>
+<a name="line-61"></a><span class='hs-comment'>-- * Connecting to an IRC network</span>
+<a name="line-62"></a>
+<a name="line-63"></a><a name="connect"></a><span class='hs-comment'>-- | Connect to a server without TLS.</span>
+<a name="line-64"></a><span class='hs-definition'>connect</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadIO</span> <span class='hs-varid'>m</span>
+<a name="line-65"></a>  <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>ByteString</span>
+<a name="line-66"></a>  <span class='hs-comment'>-- ^ The hostname</span>
+<a name="line-67"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>Int</span>
+<a name="line-68"></a>  <span class='hs-comment'>-- ^ The port</span>
+<a name="line-69"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>NominalDiffTime</span>
+<a name="line-70"></a>  <span class='hs-comment'>-- ^ The flood cooldown</span>
+<a name="line-71"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-layout'>(</span><span class='hs-conid'>ConnectionConfig</span> <span class='hs-varid'>s</span><span class='hs-layout'>)</span>
+<a name="line-72"></a><span class='hs-definition'>connect</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>connect'</span> <span class='hs-varid'>noopLogger</span>
 <a name="line-73"></a>
-<a name="line-74"></a><span class='hs-comment'>-- * Default configuration</span>
-<a name="line-75"></a>
-<a name="line-76"></a><a name="defaultIRCConf"></a><span class='hs-comment'>-- | Construct a default IRC configuration from a nick</span>
-<a name="line-77"></a><span class='hs-definition'>defaultIRCConf</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Text</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>InstanceConfig</span>
-<a name="line-78"></a><span class='hs-definition'>defaultIRCConf</span> <span class='hs-varid'>n</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>InstanceConfig</span>
-<a name="line-79"></a>  <span class='hs-layout'>{</span> <span class='hs-sel'>_nick</span>          <span class='hs-keyglyph'>=</span> <span class='hs-varid'>n</span>
-<a name="line-80"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_username</span>      <span class='hs-keyglyph'>=</span> <span class='hs-varid'>n</span>
-<a name="line-81"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_realname</span>      <span class='hs-keyglyph'>=</span> <span class='hs-varid'>n</span>
-<a name="line-82"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_channels</span>      <span class='hs-keyglyph'>=</span> <span class='hs-conid'>[]</span>
-<a name="line-83"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_ctcpVer</span>       <span class='hs-keyglyph'>=</span> <span class='hs-str'>"irc-client-0.2.3.0"</span>
-<a name="line-84"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_eventHandlers</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>defaultEventHandlers</span>
-<a name="line-85"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_ignore</span>        <span class='hs-keyglyph'>=</span> <span class='hs-conid'>[]</span>
-<a name="line-86"></a>  <span class='hs-layout'>}</span>
+<a name="line-74"></a><a name="connectWithTLS"></a><span class='hs-comment'>-- | Connect to a server with TLS.</span>
+<a name="line-75"></a><span class='hs-definition'>connectWithTLS</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadIO</span> <span class='hs-varid'>m</span>
+<a name="line-76"></a>  <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>ByteString</span>
+<a name="line-77"></a>  <span class='hs-comment'>-- ^ The hostname</span>
+<a name="line-78"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>Int</span>
+<a name="line-79"></a>  <span class='hs-comment'>-- ^ The port</span>
+<a name="line-80"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>NominalDiffTime</span>
+<a name="line-81"></a>  <span class='hs-comment'>-- ^ The flood cooldown</span>
+<a name="line-82"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-layout'>(</span><span class='hs-conid'>ConnectionConfig</span> <span class='hs-varid'>s</span><span class='hs-layout'>)</span>
+<a name="line-83"></a><span class='hs-definition'>connectWithTLS</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>connectWithTLS'</span> <span class='hs-varid'>noopLogger</span>
+<a name="line-84"></a>
+<a name="line-85"></a><a name="connect'"></a><span class='hs-comment'>-- | Connect to a server without TLS, with the provided logging</span>
+<a name="line-86"></a><span class='hs-comment'>-- function.</span>
+<a name="line-87"></a><span class='hs-definition'>connect'</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadIO</span> <span class='hs-varid'>m</span>
+<a name="line-88"></a>  <span class='hs-keyglyph'>=&gt;</span> <span class='hs-layout'>(</span><span class='hs-conid'>Origin</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>ByteString</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>IO</span> <span class='hs-conid'>()</span><span class='hs-layout'>)</span>
+<a name="line-89"></a>  <span class='hs-comment'>-- ^ The message logger</span>
+<a name="line-90"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>ByteString</span>
+<a name="line-91"></a>  <span class='hs-comment'>-- ^ The hostname</span>
+<a name="line-92"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>Int</span>
+<a name="line-93"></a>  <span class='hs-comment'>-- ^ The port</span>
+<a name="line-94"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>NominalDiffTime</span>
+<a name="line-95"></a>  <span class='hs-comment'>-- ^ The flood cooldown</span>
+<a name="line-96"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-layout'>(</span><span class='hs-conid'>ConnectionConfig</span> <span class='hs-varid'>s</span><span class='hs-layout'>)</span>
+<a name="line-97"></a><span class='hs-definition'>connect'</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>connectInternal</span> <span class='hs-varid'>ircClient</span> <span class='hs-varid'>defaultDisconnectHandler</span>
+<a name="line-98"></a>
+<a name="line-99"></a><a name="connectWithTLS'"></a><span class='hs-comment'>-- | Connect to a server with TLS, with the provided logging function.</span>
+<a name="line-100"></a><span class='hs-definition'>connectWithTLS'</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadIO</span> <span class='hs-varid'>m</span>
+<a name="line-101"></a>  <span class='hs-keyglyph'>=&gt;</span> <span class='hs-layout'>(</span><span class='hs-conid'>Origin</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>ByteString</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>IO</span> <span class='hs-conid'>()</span><span class='hs-layout'>)</span>
+<a name="line-102"></a>  <span class='hs-comment'>-- ^ The message logger</span>
+<a name="line-103"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>ByteString</span>
+<a name="line-104"></a>  <span class='hs-comment'>-- ^ The hostname</span>
+<a name="line-105"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>Int</span>
+<a name="line-106"></a>  <span class='hs-comment'>-- ^ The port</span>
+<a name="line-107"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>NominalDiffTime</span>
+<a name="line-108"></a>  <span class='hs-comment'>-- ^ The flood cooldown</span>
+<a name="line-109"></a>  <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-layout'>(</span><span class='hs-conid'>ConnectionConfig</span> <span class='hs-varid'>s</span><span class='hs-layout'>)</span>
+<a name="line-110"></a><span class='hs-definition'>connectWithTLS'</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>connectInternal</span> <span class='hs-varid'>ircTLSClient</span> <span class='hs-varid'>defaultDisconnectHandler</span>
+<a name="line-111"></a>
+<a name="line-112"></a><span class='hs-comment'>-- * Starting</span>
+<a name="line-113"></a>
+<a name="line-114"></a><a name="start"></a><span class='hs-comment'>-- | Run the event loop for a server, receiving messages and handing</span>
+<a name="line-115"></a><span class='hs-comment'>-- them off to handlers as appropriate. Messages will be logged to</span>
+<a name="line-116"></a><span class='hs-comment'>-- stdout.</span>
+<a name="line-117"></a><span class='hs-definition'>start</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadIO</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>ConnectionConfig</span> <span class='hs-conid'>()</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>InstanceConfig</span> <span class='hs-conid'>()</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-conid'>()</span>
+<a name="line-118"></a><span class='hs-definition'>start</span> <span class='hs-varid'>cconf</span> <span class='hs-varid'>iconf</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>startStateful</span> <span class='hs-varid'>cconf</span> <span class='hs-varid'>iconf</span> <span class='hs-conid'>()</span>
+<a name="line-119"></a>
+<a name="line-120"></a><a name="startStateful"></a><span class='hs-comment'>-- | like 'start' but for clients with state.</span>
+<a name="line-121"></a><span class='hs-definition'>startStateful</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadIO</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>ConnectionConfig</span> <span class='hs-varid'>s</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>InstanceConfig</span> <span class='hs-varid'>s</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>s</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-conid'>()</span>
+<a name="line-122"></a><span class='hs-definition'>startStateful</span> <span class='hs-varid'>cconf</span> <span class='hs-varid'>iconf</span> <span class='hs-varid'>ustate</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>newIRCState</span> <span class='hs-varid'>cconf</span> <span class='hs-varid'>iconf</span> <span class='hs-varid'>ustate</span> <span class='hs-varop'>&gt;&gt;=</span> <span class='hs-varid'>start'</span>
+<a name="line-123"></a>
+<a name="line-124"></a><a name="start'"></a><span class='hs-comment'>-- | Like 'start', but use the provided initial state.</span>
+<a name="line-125"></a><span class='hs-definition'>start'</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>MonadIO</span> <span class='hs-varid'>m</span> <span class='hs-keyglyph'>=&gt;</span> <span class='hs-conid'>IRCState</span> <span class='hs-varid'>s</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-varid'>m</span> <span class='hs-conid'>()</span>
+<a name="line-126"></a><span class='hs-definition'>start'</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>liftIO</span> <span class='hs-varop'>.</span> <span class='hs-varid'>runReaderT</span> <span class='hs-varid'>runner</span>
+<a name="line-127"></a>
+<a name="line-128"></a><span class='hs-comment'>-- * Default configuration</span>
+<a name="line-129"></a>
+<a name="line-130"></a><a name="defaultIRCConf"></a><span class='hs-comment'>-- | Construct a default IRC configuration from a nick</span>
+<a name="line-131"></a><span class='hs-definition'>defaultIRCConf</span> <span class='hs-keyglyph'>::</span> <span class='hs-conid'>Text</span> <span class='hs-keyglyph'>-&gt;</span> <span class='hs-conid'>InstanceConfig</span> <span class='hs-varid'>s</span>
+<a name="line-132"></a><span class='hs-definition'>defaultIRCConf</span> <span class='hs-varid'>n</span> <span class='hs-keyglyph'>=</span> <span class='hs-conid'>InstanceConfig</span>
+<a name="line-133"></a>  <span class='hs-layout'>{</span> <span class='hs-sel'>_nick</span>          <span class='hs-keyglyph'>=</span> <span class='hs-varid'>n</span>
+<a name="line-134"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_username</span>      <span class='hs-keyglyph'>=</span> <span class='hs-varid'>n</span>
+<a name="line-135"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_realname</span>      <span class='hs-keyglyph'>=</span> <span class='hs-varid'>n</span>
+<a name="line-136"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_channels</span>      <span class='hs-keyglyph'>=</span> <span class='hs-conid'>[]</span>
+<a name="line-137"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_ctcpVer</span>       <span class='hs-keyglyph'>=</span> <span class='hs-str'>"irc-client-0.2.5.0"</span>
+<a name="line-138"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_eventHandlers</span> <span class='hs-keyglyph'>=</span> <span class='hs-varid'>defaultEventHandlers</span>
+<a name="line-139"></a>  <span class='hs-layout'>,</span> <span class='hs-sel'>_ignore</span>        <span class='hs-keyglyph'>=</span> <span class='hs-conid'>[]</span>
+<a name="line-140"></a>  <span class='hs-layout'>}</span>
 </pre></body>
 </html>
